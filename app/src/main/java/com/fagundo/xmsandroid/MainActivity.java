@@ -1,103 +1,109 @@
 package com.fagundo.xmsandroid;
 
+import java.io.IOException;
+import java.io.InputStream;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
+import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
-import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
-
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.web.client.RestTemplate;
-
-public class MainActivity extends ActionBarActivity {
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, new PlaceholderFragment())
-                    .commit();
-        }
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        new HttpRequestTask().execute();
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_refresh) {
-            new HttpRequestTask().execute();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-
-        public PlaceholderFragment() {
-        }
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-            return rootView;
-        }
-    }
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.EditText;
+public class Main extends Activity implements OnClickListener {
+@Override
 
 
-    private class HttpRequestTask extends AsyncTask<Void, Void, Greeting> {
-        @Override
-        protected Greeting doInBackground(Void... params) {
-            try {
-                final String url = "http://rest-service.guides.spring.io/greeting";
-                RestTemplate restTemplate = new RestTemplate();
-                restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-                Greeting greeting = restTemplate.getForObject(url, Greeting.class);
-                return greeting;
-            } catch (Exception e) {
-                Log.e("MainActivity", e.getMessage(), e);
+public void onCreate(Bundle savedInstanceState) {
+super.onCreate(savedInstanceState);
+setContentView(R.layout.main);
+
+
+findViewById(R.id.my_button).setOnClickListener(this);
+}
+
+
+@Override
+
+
+public void onClick(View arg0) {
+Button b = (Button)findViewById(R.id.my_button);
+
+
+b.setClickable(false);
+new LongRunningGetIO().execute();
+}
+
+    private class LongRunningGetIO extends AsyncTask <Void, Void, String> {
+        protected String getASCIIContentFromEntity(HttpEntity entity) throws IllegalStateException, IOException {
+            InputStream in = entity.getContent();
+
+
+            StringBuffer out = new StringBuffer();
+            int n = 1;
+            while (n>0) {
+                byte[] b = new byte[4096];
+                n =  in.read(b);
+
+
+                if (n>0) out.append(new String(b, 0, n));
             }
 
-            return null;
+
+            return out.toString();
         }
 
+
         @Override
-        protected void onPostExecute(Greeting greeting) {
-            TextView greetingXmsText = (TextView) findViewById(R.id.xms_value);
-            TextView greetingUsernameText = (TextView) findViewById(R.id.username_value);
-            TextView greetingPasswordText = (TextView) findViewById(R.id.password_value);
-            greetingXmsText.setText(greeting.getXms());
-            greetingUsernameText.setText(greeting.getUsername());
-            greetingPasswordText.setText(greeting.getPassword());
+
+
+        protected String doInBackground(Void... params) {
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpContext localContext = new BasicHttpContext();
+            HttpGet httpGet = new HttpGet("http://www.cheesejedi.com/rest_services/get_big_cheese.php?puzzle=1");
+            String text = null;
+            try {
+                HttpResponse response = httpClient.execute(httpGet, localContext);
+
+
+                HttpEntity entity = response.getEntity();
+
+
+                text = getASCIIContentFromEntity(entity);
+
+
+            } catch (Exception e) {
+                return e.getLocalizedMessage();
+            }
+
+
+            return text;
         }
+
+
+        protected void onPostExecute(String results) {
+            if (results!=null) {
+                EditText et = (EditText)findViewById(R.id.my_edit);
+
+
+                et.setText(results);
+
+
+            }
+
+
+            Button b = (Button)findViewById(R.id.my_button);
+
+
+            b.setClickable(true);
+        }
+
 
     }
 
